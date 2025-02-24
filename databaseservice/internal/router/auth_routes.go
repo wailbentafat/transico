@@ -1,5 +1,16 @@
 package router
 
+import "github.com/gin-gonic/gin"
+
+import "databaseservice/internal/handler"
 
 
-type AuthRoutes struct {}
+
+func AuthRoutes(r *gin.Engine) {
+	auth := r.Group("/auth")
+	auth.POST("/register", handler.Register)
+	auth.POST("/login", handler.Login)
+	auth.POST("/verify", handler.Verify)
+	auth.Use(middelware.JwtMiddleware())
+}
+

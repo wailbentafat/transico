@@ -1,6 +1,12 @@
 package handler
 
-import "databaseservice/internal/service"
+import (
+	"databaseservice/internal/models"
+	"databaseservice/internal/service"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
 
 type CmpDataHandler interface{}
 type CmpHandler struct {
@@ -11,4 +17,15 @@ func Newcmpdatahandler(cmpservice *service.CmpdataServiceImpl) *CmpHandler {
 		cmpservice: cmpservice,
 	}	
 }
-func ()
+func (h *CmpHandler) CreateCmpData(c *gin.Context) {
+	var cmp models.CmpData
+	if err := c.ShouldBindJSON(&cmp); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.cmpservice.CreateCmpData(&cmp); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "heyy"})
+		return
+	}
+	c.JSON(http.StatusCreated, cmp)
+}

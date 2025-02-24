@@ -11,7 +11,12 @@ import (
 )
 
 
-type AuthHandler interface {}
+type AuthHandler interface {
+	Login(c *gin.Context)
+	Register(c *gin.Context)
+	
+
+}
 type AuthHandlerImpl struct {
 
 	authservice *service.Authserviceimpl
@@ -23,6 +28,7 @@ func Newauthhandler(authservice *service.Authserviceimpl,	)(	*AuthHandlerImpl){
 	}
 }
 
+
 func (h *AuthHandlerImpl)login (c *gin.Context)  {
 	var user Types.User
 	if err:=c.ShouldBindJSON(&user );err!=nil{
@@ -31,7 +37,7 @@ func (h *AuthHandlerImpl)login (c *gin.Context)  {
 	 return
 	}
 	if err:=h.authservice.Login	(&user);err!=nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		c.JSON(http.StatusBadRequest,gin.H{"error":"heyy"})
 	}
 	//token 
 	 token :=1000000
@@ -50,7 +56,7 @@ func (h *AuthHandlerImpl)register(c *gin.Context)  {
 	 return
 	}
 	if err:=h.authservice.Register	(&user);err!=nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		c.JSON(http.StatusBadRequest,gin.H{"error":"hey"})
 	}
 	//token 
 	 token :=1000000
@@ -68,7 +74,7 @@ func (h *AuthHandlerImpl)Virify(c *gin.Context)  {
 	 c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	 return
 	}
-	if err:=h.authservice.Virify	(&user);err!=nil{
+	if err:=h.authservice.Virify(&user);err!=nil{
 		c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
 	}
 	//token 
