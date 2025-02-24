@@ -15,7 +15,7 @@ contract MonitorScript is Script {
         // DEV: Check here for deploying: https://book.getfoundry.sh/forge/deploying.
         vm.startBroadcast();
 
-        monitor = new Monitor();
+        monitor = new BikeRental();
 
         vm.stopBroadcast();
     }
