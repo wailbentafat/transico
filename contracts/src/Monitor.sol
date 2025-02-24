@@ -1,45 +1,76 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-event ContractBroken(uint256 contractId);
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Monitor {
-
-    // DEV: Why deploying a contarct for each id? Consider tracking all ids in a `mapping` in one contract. See here for mapping: https://solidity-by-example.org/mapping/.
-    // Something like this: `mapping(uint256 id => Data data)` public monitor; where Data is a `struct` with the other things needed (truckNumber, temperature, isBroken ...etc).
-
-    uint256 public contractId;
-    uint256 public truckNumber;
-    int16 public temperature;
-    bool public isBroken;
-
-    constructor(
-        uint256 _contractId,
-        uint256 _truckNumber,
-        int16 _temperature
-    ) {
-        contractId = _contractId;
-        truckNumber = _truckNumber;
-        temperature = _temperature;
-        // DEV: No need to init `isBroken`. All variables are null by default, e.g. all `bool` are false by default.
+contract BikeRental is Ownable, ReentrancyGuard {
+    struct Rental {
+        address renter;
+        uint256 deposit;
+        uint256 startTime;
+        bool isReturned;
     }
 
-    function setBroken() external {
-        // DEV: Anyone can mark contract as broken, add access control. See: https://docs.openzeppelin.com/contracts/2.x/access-control.
-        isBroken = true;
-        emit ContractBroken(contractId);
+    mapping(uint256 => Rental) public rentals;
+    uint256 public hourlyRate = 0.005 ether;  
+    uint256 public minDeposit = 0.05 ether;
+    uint256 public lateFeePerHour = 0.002 ether; 
+    event RentalStarted(uint256 indexed qrCodeId, address indexed renter, uint256 deposit);
+    event RentalEnded(uint256 indexed qrCodeId, address indexed renter, uint256 totalFee);
+    event FeesWithdrawn(address owner, uint256 amount);
+
+    constructor() Ownable() {} 
+
+ 
+    function startRental(uint256 qrCodeId) external payable nonReentrant {
+        require(msg.value >= minDeposit, "Deposit too low");
+        require(rentals[qrCodeId].renter == address(0), "Bike already rented");
+
+        rentals[qrCodeId] = Rental({
+            renter: msg.sender,
+            deposit: msg.value,
+            startTime: block.timestamp,
+            isReturned: false
+        });
+
+        emit RentalStarted(qrCodeId, msg.sender, msg.value);
     }
 
-    function getBroken() external view returns (bool) {
-        // DEV: No need for this getter. All public variables have a getter by default.
-        return isBroken;
+ 
+    function returnBike(uint256 qrCodeId) external nonReentrant {
+        Rental storage rental = rentals[qrCodeId];
+        require(msg.sender == rental.renter, "Not your rental");
+        require(!rental.isReturned, "Already returned");
+
+        rental.isReturned = true;
+        uint256 rentalDuration = (block.timestamp - rental.startTime) / 1 hours;
+        uint256 totalFee = rentalDuration * hourlyRate;
+
+        if (!rental.isReturned) {
+            totalFee += rentalDuration * lateFeePerHour;
+        }
+       
+        uint256 refund = rental.deposit > totalFee ? rental.deposit - totalFee : 0;
+        if (refund > 0) {
+            payable(rental.renter).transfer(refund);
+        }
+
+        emit RentalEnded(qrCodeId, rental.renter, totalFee);
     }
 
-    function getShipmentData()
-        external
-        view
-        returns (uint256, uint256, int256, bool)
-    {
-        return (contractId, truckNumber, temperature, isBroken);
+ 
+    function withdrawFees() external onlyOwner nonReentrant {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds available");
+        payable(owner()).transfer(balance);
+        emit FeesWithdrawn(owner(), balance);
+    }
+
+   
+    function setPricing(uint256 _hourlyRate, uint256 _minDeposit, uint256 _lateFeePerHour) external onlyOwner {
+        hourlyRate = _hourlyRate;
+        minDeposit = _minDeposit;
+        lateFeePerHour = _lateFeePerHour;
     }
 }

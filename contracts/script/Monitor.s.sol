@@ -2,10 +2,12 @@
 pragma solidity ^0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Monitor} from "../src/Monitor.sol";
+import {
+     BikeRental
+} from "../src/Monitor.sol";
 
 contract MonitorScript is Script {
-    Monitor public monitor;
+    BikeRental public monitor;
 
     function setUp() public {}
 
